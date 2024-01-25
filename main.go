@@ -10,9 +10,9 @@ import (
 )
 
 type Game struct {
-  ID string
-  PlayerOne Player 
-  PlayerTwo Player 
+  ID string `json:"id"`
+  PlayerOne Player `json:"playerOne"` 
+  PlayerTwo Player `json:"playerTwo"`
 }
 
 type Player struct {
@@ -26,6 +26,11 @@ type JoinGameRequest struct {
 
 type CreateGameRequest struct {
   PlayerName string
+}
+
+type CreateGameResponse struct {
+  GameID string
+  PlayerOne Player
 }
 
 var upgrader = websocket.Upgrader{}
@@ -104,14 +109,26 @@ func createGame(w http.ResponseWriter, r *http.Request) {
   }
 
   games = append(games, game)
-
   log.Println(len(games))
+
+  gameCreateResponse := CreateGameResponse{
+    GameID: game.ID,
+  } 
+  encoder := json.NewEncoder(w)
+  err = encoder.Encode(gameCreateResponse)
+  
+  if err != nil {
+    response := "Internal Server Error"
+    w.Write([]byte(response))
+    log.Println(response)
+    return
+  }
 }
 
 func main() {
   http.HandleFunc("/", home)
   http.HandleFunc("/create-game", createGame)
-  http.HandleFunc("/join-game", joinGame)
+  // http.HandleFunc("/join-game", joinGame)
   http.HandleFunc("/ws", wsConnect)
 
   log.Printf("Listening on port: 8080")
