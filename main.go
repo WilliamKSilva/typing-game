@@ -62,6 +62,27 @@ func home(w http.ResponseWriter, r *http.Request) {
   w.Write([]byte(response))
 }
 
+func joinGame(w http.ResponseWriter, r *http.Request) {
+  decoder := json.NewDecoder(r.Body)
+  var gameJoinRequest JoinGameRequest
+  err := decoder.Decode(&gameJoinRequest)
+
+  if err != nil {
+    response := "Unprocessable request"
+    w.Write([]byte(response))
+    log.Println(response)
+    return
+  }
+
+  for _, game := range games {
+    if game.ID == gameJoinRequest.GameID {
+      game.PlayerTwo = Player{
+        Name: gameJoinRequest.PlayerName,
+      }
+    }
+  }
+}
+
 func createGame(w http.ResponseWriter, r *http.Request) {
   decoder := json.NewDecoder(r.Body)
   var gameCreateRequest CreateGameRequest 
@@ -69,6 +90,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
   if err != nil {
     response := "Unprocessable request"
     w.Write([]byte(response))
+    log.Println(response)
     return
   }
 
@@ -89,6 +111,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 func main() {
   http.HandleFunc("/", home)
   http.HandleFunc("/create-game", createGame)
+  http.HandleFunc("/join-game", joinGame)
   http.HandleFunc("/ws", wsConnect)
 
   log.Printf("Listening on port: 8080")
