@@ -20,17 +20,12 @@ type Player struct {
 }
 
 type JoinGameRequest struct {
-  GameID string
-  PlayerName string
+  GameID string `json:"gameId"`
+  PlayerName string `json:"playerName"`
 }
 
 type CreateGameRequest struct {
   PlayerName string
-}
-
-type CreateGameResponse struct {
-  GameID string
-  PlayerOne Player
 }
 
 var upgrader = websocket.Upgrader{}
@@ -79,12 +74,23 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
     return
   }
 
+  var gameFound Game
   for _, game := range games {
     if game.ID == gameJoinRequest.GameID {
       game.PlayerTwo = Player{
         Name: gameJoinRequest.PlayerName,
       }
+
+      gameFound = game 
     }
+  }
+
+  encoder := json.NewEncoder(w)
+  err = encoder.Encode(gameFound)
+
+  if err != nil {
+    response := "Internal Server Error"
+    log.Println(response)
   }
 }
 
@@ -111,11 +117,8 @@ func createGame(w http.ResponseWriter, r *http.Request) {
   games = append(games, game)
   log.Println(len(games))
 
-  gameCreateResponse := CreateGameResponse{
-    GameID: game.ID,
-  } 
   encoder := json.NewEncoder(w)
-  err = encoder.Encode(gameCreateResponse)
+  err = encoder.Encode(game)
   
   if err != nil {
     response := "Internal Server Error"
@@ -128,7 +131,7 @@ func createGame(w http.ResponseWriter, r *http.Request) {
 func main() {
   http.HandleFunc("/", home)
   http.HandleFunc("/create-game", createGame)
-  // http.HandleFunc("/join-game", joinGame)
+  http.HandleFunc("/join-game", joinGame)
   http.HandleFunc("/ws", wsConnect)
 
   log.Printf("Listening on port: 8080")
