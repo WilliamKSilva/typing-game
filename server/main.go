@@ -24,14 +24,16 @@ type JoinGameRequest struct {
   PlayerName string `json:"playerName"`
 }
 
-type CreateGameRequest struct {
-  PlayerName string
-}
-
 var upgrader = websocket.Upgrader{}
 
 /* Will change this to an mutex */
 var games []Game
+
+func setupHeaders(w http.ResponseWriter) {
+  w.Header().Set("Access-Control-Allow-Origin", "*")
+  w.Header().Set("Access-Control-Allow-Headers", "*")
+  w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE")
+}
 
 func wsConnect(w http.ResponseWriter, r *http.Request) {
   connection, err := upgrader.Upgrade(w, r, nil)
@@ -63,6 +65,8 @@ func home(w http.ResponseWriter, r *http.Request) {
 }
 
 func joinGame(w http.ResponseWriter, r *http.Request) {
+  setupHeaders(w)
+
   decoder := json.NewDecoder(r.Body)
   var gameJoinRequest JoinGameRequest
   err := decoder.Decode(&gameJoinRequest)
@@ -77,13 +81,25 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
   var gameFound Game
   for _, game := range games {
     if game.ID == gameJoinRequest.GameID {
-      game.PlayerTwo = Player{
-        Name: gameJoinRequest.PlayerName,
+      if game.PlayerOne.Name != "" {
+        game.PlayerTwo = Player{
+          Name: gameJoinRequest.PlayerName,
+        }
+
+        gameFound = game 
+
+        break
       }
 
-      gameFound = game 
+      game.PlayerOne = Player{
+          Name: gameJoinRequest.PlayerName,
+        }
+
+      gameFound = game
     }
   }
+
+  log.Println(gameFound)
 
   encoder := json.NewEncoder(w)
   err = encoder.Encode(gameFound)
@@ -95,30 +111,16 @@ func joinGame(w http.ResponseWriter, r *http.Request) {
 }
 
 func createGame(w http.ResponseWriter, r *http.Request) {
-  decoder := json.NewDecoder(r.Body)
-  var gameCreateRequest CreateGameRequest 
-  err := decoder.Decode(&gameCreateRequest)
-  if err != nil {
-    response := "Unprocessable request"
-    w.Write([]byte(response))
-    log.Println(response)
-    return
-  }
-
-  playerOne := Player{
-    Name: gameCreateRequest.PlayerName,
-  }
+  setupHeaders(w)
 
   game := Game{
     ID: uuid.New().String(),
-    PlayerOne: playerOne,
   }
 
   games = append(games, game)
-  log.Println(len(games))
 
   encoder := json.NewEncoder(w)
-  err = encoder.Encode(game)
+  err := encoder.Encode(game)
   
   if err != nil {
     response := "Internal Server Error"
