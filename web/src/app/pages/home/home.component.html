@@ -1,5 +1,13 @@
 <main class="main">
-  <div class="main-menu">
+  <div *ngIf="showGameMenu" class="main-menu">
     <button (click)="onCreateGame()">New Game</button>
+  </div>
+  <div *ngIf="showCreateGameMenu" class="create-game-menu">
+    <input (keyup)="onInputNameChange($event)" placeholder="Your nickname" />
+    <button (click)="onCreateGameConfim()">Create</button>
+  </div>
+  <div *ngIf="showJoinGameMenu" class="join-game-menu">
+    <input (keyup)="onInputIDChange($event)" placeholder="Game ID" />
+    <button (click)="onJoinGameConfim()">Join</button>
   </div>
 </main>
